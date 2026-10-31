@@ -61,7 +61,7 @@ Window:EditOpenButton({
     Draggable = true,
 })
 
-local InfoTab = Window:Tab({ Title = "Telegram", Icon = "info" })
+local InfoTab = Window:Tab({ Title = "information", Icon = "info" })
 local HomeTab = Window:Tab({ Title = "Home", Icon = "house" })
 local Tab3 = Window:Tab({ Title = "Player", Icon = "user" })
 local FarmTab = Window:Tab({ Title = "Farm", Icon = "pickaxe" })
