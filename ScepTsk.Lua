@@ -32,7 +32,7 @@ end
 local windowTitle =
     gradient("Serva Hub", Color3.fromRGB(201, 166, 255), Color3.fromRGB(122, 60, 255))
     .. ' <font color="rgb(155,92,255)">•</font> '
-    .. '<font color="rgb(181,123,255)">v1</font>'
+    .. '<font color="rgb(181,123,255)">v1.2</font>'
 
 local windowAuthor = '<font color="rgb(143,122,184)">Bear alpha</font>'
 
@@ -67,6 +67,8 @@ Window:EditOpenButton({
 local InfoTab = Window:Tab({ Title = "information", Icon = "info" })
 local Tab3 = Window:Tab({ Title = "Player", Icon = "user" })
 local FarmTab = Window:Tab({ Title = "Farm", Icon = "pickaxe" })
+local VisualsTab = Window:Tab({ Title = "Visuals", Icon = "eye" })
+local TeleportsTab = Window:Tab({ Title = "Teleports", Icon = "map-pin" })
 local Tab4 = Window:Tab({ Title = "Settings", Icon = "settings" })
 
 local Player = game.Players.LocalPlayer
@@ -134,59 +136,28 @@ LinkSection:Button({
     end,
 })
 
+-- ==========================================
+-- ОБНОВЛЕННЫЙ CHANGELOG
+-- ==========================================
+local ChangelogSection = InfoTab:Section({ Title = "Changelog", Icon = "scroll-text" })
 
-local SessionSection = InfoTab:Section({ Title = "Session Stats", Icon = "clock" })
-local scriptStartTime = tick()
-
-local SessionParagraph = SessionSection:Paragraph({
-    Title = 'Uptime',
-    Desc = '<font color="rgb(143,122,184)">Time in Game: 00:00:00</font>\n<font color="rgb(143,122,184)">Script Uptime: 00:00:00</font>',
+ChangelogSection:Paragraph({
+    Title = '<font color="rgb(201,166,255)">Serva Hub v1.2</font>',
+    Desc = '<font color="rgb(143,122,184)">• Added Auto Farm Puzzles (Beta)</font>\n' ..
+           '<font color="rgb(143,122,184)">• Added Bear ESP (Optimized)</font>\n' ..
+           '<font color="rgb(143,122,184)">• Added Survivors ESP</font>\n' ..
+           '<font color="rgb(143,122,184)">• Added Candy ESP</font>\n' ..
+           '<font color="rgb(143,122,184)">• Added Candy Farm modes: Teleport & Fly</font>\n' ..
+           '<font color="rgb(143,122,184)">• Added Player Settings (WalkSpeed, JumpPower, Noclip)</font>\n' ..
+           '<font color="rgb(143,122,184)">• Added Player Teleports (Random & Selected)</font>\n' ..
+           '<font color="rgb(143,122,184)">• Added World Settings (Fullbright, No Fog, FOV)</font>\n' ..
+           '<font color="rgb(143,122,184)">• UI improvements & bug fixes</font>',
     Image = "rbxassetid://112491954653394",
     ImageSize = 40,
 })
-
-local function formatTime(seconds)
-    local hours = math.floor(seconds / 3600)
-    local minutes = math.floor((seconds % 3600) / 60)
-    local secs = math.floor(seconds % 60)
-    return string.format("%02d:%02d:%02d", hours, minutes, secs)
-end
-
-local joinTime = tick()
-pcall(function()
-    if Player.JoinTime then
-        joinTime = Player.JoinTime
-    end
-end)
-
-task.spawn(function()
-    while task.wait(1) do
-        local timeInGame = formatTime(tick() - joinTime)
-        local uptime = formatTime(tick() - scriptStartTime)
-
-        local newText = '<font color="rgb(143,122,184)">Time in Game: ' .. timeInGame .. '</font>\n' ..
-                        '<font color="rgb(143,122,184)">Script Uptime: ' .. uptime .. '</font>'
-
-        pcall(function()
-            if SessionParagraph.SetDesc then
-                SessionParagraph:SetDesc(newText)
-            end
-        end)
-
-        pcall(function()
-            for _, v in pairs(SessionParagraph:GetDescendants()) do
-                if v:IsA("TextLabel") and v.Text:find("Time in Game") then
-                    v.Text = newText
-                    break
-                end
-            end
-        end)
-    end
-end)
-
+-- ==========================================
 
 local PlayerSection = Tab3:Section({ Title = "Player Settings", Icon = "user" })
-
 
 PlayerSection:Slider({
     Title = "WalkSpeed",
@@ -198,7 +169,6 @@ PlayerSection:Slider({
         end
     end,
 })
-
 
 PlayerSection:Slider({
     Title = "JumpPower",
@@ -215,7 +185,6 @@ PlayerSection:Slider({
         end
     end,
 })
-
 
 local NoclipEnabled = false
 local Connect = nil
@@ -252,17 +221,19 @@ PlayerSection:Toggle({
     end,
 })
 
+local FarmSection = FarmTab:Section({ Title = "Farm Candy", Icon = "candy" })
 
-local FarmSection = FarmTab:Section({ Title = "Farm", Icon = "candy" })
+local CandyFarmMode = "None"
+local CandyFlyEnabled = false
 
-local CandyFarmEnabled = false
-
-FarmSection:Toggle({
+FarmSection:Dropdown({
     Title = "Auto Farm Candy",
-    Icon = "candy",
-    Value = false,
-    Callback = function(state)
-        CandyFarmEnabled = state
+    Values = {"None", "Teleport", "Fly"},
+    Value = "None",
+    AllowNone = false,
+    Callback = function(option)
+        CandyFarmMode = option
+        CandyFlyEnabled = (option == "Fly")
     end,
 })
 
@@ -275,14 +246,21 @@ local function teleportTo(pos)
     end
 end
 
+local function teleportToPlayer(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then return end
+    local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if targetHRP then
+        teleportTo(targetHRP.Position)
+    end
+end
+
 task.spawn(function()
-    while task.wait(1) do
-        if CandyFarmEnabled then
+    while task.wait(0.1) do
+        if CandyFarmMode ~= "None" then
             local map = workspace:FindFirstChild("Map")
             if map then
                 local candies = {}
                 for _, obj in ipairs(map:GetDescendants()) do
-                    
                     local nameLower = obj.Name:lower()
                     if nameLower:find("candy") or nameLower:find("конфета") then
                         if obj:IsA("BasePart") and obj.Parent then
@@ -294,15 +272,39 @@ task.spawn(function()
                 if #candies > 0 then
                     local char = player.Character
                     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    local originalPos = hrp and hrp.Position or Vector3.new(0, 0, 0)
-                    
+                    if not hrp then continue end
+
                     local target = candies[1]
-                    if target and target.Position then
-                        teleportTo(target.Position + Vector3.new(0, 3, 0))
-                        task.wait(1)
+                    
+                    if CandyFarmMode == "Teleport" then
                         
-                        if originalPos and originalPos ~= Vector3.new(0,0,0) then
-                            teleportTo(originalPos)
+                        local originalPos = hrp.Position
+                        if target and target.Position then
+                            teleportTo(target.Position + Vector3.new(0, 3, 0))
+                            task.wait(0.5) 
+                            if originalPos and originalPos ~= Vector3.new(0,0,0) then
+                                teleportTo(originalPos)
+                            end
+                        end
+                    elseif CandyFarmMode == "Fly" then
+                        
+                        local targetPos = target.Position + Vector3.new(0, 3, 0)
+                        
+                        
+                        while CandyFlyEnabled and hrp and (hrp.Position - targetPos).Magnitude > 3 do
+                            local moveDir = (targetPos - hrp.Position).Unit
+                            hrp.CFrame = hrp.CFrame + moveDir * 4
+                            task.wait()
+                        end
+                        
+                        task.wait(0.3) 
+                        
+                        
+                        local returnPos = hrp.Position + Vector3.new(0, 10, 0)
+                        while CandyFlyEnabled and hrp and (hrp.Position - returnPos).Magnitude > 3 do
+                            local moveDir = (returnPos - hrp.Position).Unit
+                            hrp.CFrame = hrp.CFrame + moveDir * 4
+                            task.wait()
                         end
                     end
                 end
@@ -311,6 +313,409 @@ task.spawn(function()
     end
 end)
 
+
+local PuzzleSection = FarmTab:Section({ Title = "Auto Puzzles", Icon = "zap" })
+
+local AutoSolvePuzzlesEnabled = false
+
+PuzzleSection:Toggle({
+    Title = "Auto Farm Puzzles [Beta]",
+    Icon = "zap",
+    Value = false,
+    Callback = function(state)
+        AutoSolvePuzzlesEnabled = state
+        
+        if state then
+            task.spawn(function()
+                while AutoSolvePuzzlesEnabled do
+                    task.wait(2)
+                    
+                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if not hrp then continue end
+
+                    local map = workspace:FindFirstChild("Map")
+                    if not map then continue end
+
+                    
+                    for _, puzzle in ipairs(map:GetChildren()) do
+                        if not AutoSolvePuzzlesEnabled then break end
+                        
+                        
+                        if (puzzle:IsA("Folder") or puzzle:IsA("Model")) and puzzle.Name ~= "Terrain" then
+                            
+                            
+                            if not puzzle:FindFirstChild("SolvedByESP") then
+                                
+                                
+                                local targetPos = puzzle:GetPivot().Position + Vector3.new(0, 5, -5)
+                                hrp.CFrame = CFrame.new(targetPos)
+                                task.wait(1)
+
+                                
+                                for i = 1, 10 do
+                                    if not AutoSolvePuzzlesEnabled then break end
+                                    
+                                    for _, part in ipairs(puzzle:GetDescendants()) do
+                                        if part:IsA("BasePart") then
+                                            if part.Material == Enum.Material.Neon or part.Color == Color3.fromRGB(0, 255, 0) or part.Color == Color3.fromRGB(255, 0, 0) then
+                                                local cd = part:FindFirstChildOfClass("ClickDetector")
+                                                if cd then
+                                                    fireclickdetector(cd)
+                                                else
+                                                    hrp.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+                                                end
+                                                task.wait(0.1)
+                                            end
+                                        end
+                                    end
+                                    task.wait(0.3)
+                                end
+                                
+                                
+                                local marker = Instance.new("Folder")
+                                marker.Name = "SolvedByESP"
+                                marker.Parent = puzzle
+                                
+                                task.wait(1)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end,
+})
+
+
+local MainTeleports = TeleportsTab:Section({ Title = "Main Locations", Icon = "map" })
+
+MainTeleports:Button({
+    Title = "Teleport to Map (Broken)",
+    Icon = "", 
+    Color = BTN_COLOR,
+    Justify = "Center",
+    Callback = function()
+    
+    end,
+})
+
+MainTeleports:Button({
+    Title = "Teleport to Lobby",
+    Icon = "", 
+    Color = BTN_COLOR,
+    Justify = "Center",
+    Callback = function()
+     if game.Players.LocalPlayer.Character and workspace:FindFirstChild("halloween2025") then
+         game.Players.LocalPlayer.Character.HumanoidRootPart:PivotTo(workspace.halloween2025.Parts:GetChildren()[41]:GetPivot())
+     end
+    end,
+})
+
+local PlayerTeleports = TeleportsTab:Section({ Title = "Player Teleports", Icon = "users" })
+
+PlayerTeleports:Button({
+    Title = "Teleport to Random Player",
+    Icon = "",
+    Color = BTN_COLOR,
+    Justify = "Center",
+    Callback = function()
+        local playersList = {}
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                table.insert(playersList, p)
+            end
+        end
+        
+        if #playersList > 0 then
+            local randomPlayer = playersList[math.random(1, #playersList)]
+            teleportToPlayer(randomPlayer)
+            WindUI:Notify({ Title = "Teleport", Content = "Teleported to " .. randomPlayer.Name, Icon = "check" })
+        else
+            WindUI:Notify({ Title = "Teleport", Content = "No other players found!", Icon = "x" })
+        end
+    end,
+})
+
+local selectedPlayer = nil
+local playerDropdown = PlayerTeleports:Dropdown({
+    Title = "Select Player",
+    Values = {},
+    Value = nil,
+    AllowNone = true,
+    Callback = function(option)
+        selectedPlayer = option
+    end,
+})
+
+task.spawn(function()
+    while task.wait(2) do
+        local playerNames = {}
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= player then
+                table.insert(playerNames, p.Name)
+            end
+        end
+        pcall(function()
+            playerDropdown:Refresh(playerNames)
+        end)
+    end
+end)
+
+PlayerTeleports:Button({
+    Title = "Teleport to Selected Player",
+    Icon = "",
+    Color = BTN_COLOR,
+    Justify = "Center",
+    Callback = function()
+        if selectedPlayer then
+            local target = game.Players:FindFirstChild(selectedPlayer)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                teleportToPlayer(target)
+                WindUI:Notify({ Title = "Teleport", Content = "Teleported to " .. target.Name, Icon = "check" })
+            else
+                WindUI:Notify({ Title = "Teleport", Content = "Player not found or dead!", Icon = "x" })
+            end
+        else
+            WindUI:Notify({ Title = "Teleport", Content = "Please select a player first!", Icon = "alert-circle" })
+        end
+    end,
+})
+
+local VisualSection = VisualsTab:Section({ Title = "Visual Settings", Icon = "eye" })
+local WorldSection = VisualsTab:Section({ Title = "World Settings", Icon = "globe" })
+
+local Lighting = game:GetService("Lighting")
+local originalFogEnd = Lighting.FogEnd
+
+local origBrightness = Lighting.Brightness
+local origClockTime = Lighting.ClockTime
+local origGlobalShadows = Lighting.GlobalShadows
+local origOutdoorAmbient = Lighting.OutdoorAmbient
+local origAmbient = Lighting.Ambient
+
+WorldSection:Toggle({
+    Title = "Fullbright",
+    Icon = "sun",
+    Value = false,
+    Callback = function(state)
+             if state then
+            
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.GlobalShadows = false
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        else
+            
+            Lighting.Brightness = origBrightness
+            Lighting.ClockTime = origClockTime
+            Lighting.GlobalShadows = origGlobalShadows
+            Lighting.OutdoorAmbient = origOutdoorAmbient
+            Lighting.Ambient = origAmbient
+        end
+    end,
+})
+
+WorldSection:Toggle({
+    Title = "No Fog",
+    Icon = "cloud-off",
+    Value = false,
+    Callback = function(state)
+     
+    if state then
+        Lighting.FogEnd = 100000
+    else
+        Lighting.FogEnd = originalFogEnd
+    end
+end,
+})
+
+WorldSection:Slider({
+    Title = "Camera FOV",
+    Value = { Min = 70, Max = 120, Default = 70 },
+    Callback = function(value)
+        local cam = workspace.CurrentCamera
+        if cam then
+            cam.FieldOfView = value
+        end
+    end,
+})
+
+local SurvivorsESPEnabled = false
+local espConnectionsSurvivors = {}
+local activeHighlightsSurvivors = {}
+
+VisualSection:Toggle({
+    Title = "Survivors ESP",
+    Icon = "user-check",
+    Value = false,
+    Callback = function(state)
+        SurvivorsESPEnabled = state
+    
+        local Teams = game:GetService("Teams")
+        local SurvivorsTeam = Teams:FindFirstChild("Survivors")
+        
+        local function updateESP()
+            if not SurvivorsESPEnabled then return end
+            
+            for _, v in ipairs(game.Players:GetPlayers()) do 
+                if v ~= player and v.Team == SurvivorsTeam and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then 
+                    if not activeHighlightsSurvivors[v.Character] then 
+                        local hl = Instance.new("Highlight")
+                        hl.Parent = v.Character
+                        hl.FillColor = Color3.fromRGB(0, 255, 0) -- Зеленый
+                        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                        hl.FillTransparency = 0.5
+                        activeHighlightsSurvivors[v.Character] = hl
+                    end 
+                end 
+            end
+        end
+ 
+        if state then
+            table.insert(espConnectionsSurvivors, task.spawn(function()
+                while SurvivorsESPEnabled do
+                    updateESP()
+                    task.wait(0.5)
+                end 
+            end))
+            updateESP()
+        else
+            for _, conn in ipairs(espConnectionsSurvivors) do
+                if type(conn) == "thread" then task.cancel(conn) end
+            end
+            espConnectionsSurvivors = {}
+            
+            for char, hl in pairs(activeHighlightsSurvivors) do 
+                if hl then hl:Destroy() end 
+            end     
+            activeHighlightsSurvivors = {}
+        end 
+    end,
+})
+
+local BearESPEnabled = false
+local espConnectionsBear = {}
+local activeHighlightsBear = {}
+
+VisualSection:Toggle({
+    Title = "Bear ESP",
+    Icon = "skull",
+    Value = false,
+    Callback = function(state)
+        BearESPEnabled = state
+    
+        local Teams = game:GetService("Teams")
+        local BearTeam = Teams:FindFirstChild("Bear")
+        
+        local function updateESP()
+            if not BearESPEnabled then return end
+            
+            for char, hl in pairs(activeHighlightsBear) do
+                if not char.Parent or not char:FindFirstChild("HumanoidRootPart") or (char:FindFirstChild("Humanoid") and char.Humanoid.Health <= 0) then
+                    if hl then hl:Destroy() end
+                    activeHighlightsBear[char] = nil
+                end
+            end
+            
+            for _, v in ipairs(game.Players:GetPlayers()) do 
+                if v ~= player and v.Team == BearTeam and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then 
+                    local hum = v.Character:FindFirstChild("Humanoid")
+                    if hum and hum.Health > 0 then
+                        if not activeHighlightsBear[v.Character] then 
+                            local hl = Instance.new("Highlight")
+                            hl.Parent = v.Character
+                            hl.FillColor = Color3.fromRGB(255, 0, 0) -- Красный
+                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            hl.FillTransparency = 0.5
+                            activeHighlightsBear[v.Character] = hl
+                        end 
+                    end
+                end 
+            end
+        end
+ 
+        if state then
+            table.insert(espConnectionsBear, task.spawn(function()
+                while BearESPEnabled do
+                    updateESP()
+                    task.wait(0.5)
+                end 
+            end))
+            updateESP()
+        else
+            for _, conn in ipairs(espConnectionsBear) do
+                if type(conn) == "thread" then task.cancel(conn) end
+            end
+            espConnectionsBear = {}
+            
+            for char, hl in pairs(activeHighlightsBear) do 
+                if hl then hl:Destroy() end 
+            end     
+            activeHighlightsBear = {}
+        end 
+    end,
+})
+
+local CandyESPEnabled = false
+local espConnectionsCandy = {}
+local activeHighlightsCandy = {}
+
+VisualSection:Toggle({
+    Title = "Candy ESP",
+    Icon = "candy",
+    Value = false,
+    Callback = function(state)
+        CandyESPEnabled = state
+        
+        local function updateESP()
+            if not CandyESPEnabled then return end
+            
+            local map = workspace:FindFirstChild("Map")
+            if not map then return end
+            
+            for candy, hl in pairs(activeHighlightsCandy) do
+                if not candy.Parent then
+                    if hl then hl:Destroy() end
+                    activeHighlightsCandy[candy] = nil
+                end
+            end
+            
+            for _, obj in ipairs(map:GetDescendants()) do
+                local nameLower = obj.Name:lower()
+                if (nameLower:find("candy") or nameLower:find("конфета")) and (obj:IsA("BasePart") or obj:IsA("MeshPart")) then
+                    if not activeHighlightsCandy[obj] then
+                        local hl = Instance.new("Highlight")
+                        hl.Parent = obj
+                        hl.FillColor = Color3.fromRGB(255, 255, 0)
+                        hl.OutlineColor = Color3.fromRGB(255, 165, 0)
+                        hl.FillTransparency = 0.5
+                        activeHighlightsCandy[obj] = hl
+                    end
+                end
+            end
+        end
+ 
+        if state then
+            table.insert(espConnectionsCandy, task.spawn(function()
+                while CandyESPEnabled do
+                    updateESP()
+                    task.wait(0.5)
+                end 
+            end))
+            updateESP()
+        else
+            for _, conn in ipairs(espConnectionsCandy) do
+                if type(conn) == "thread" then task.cancel(conn) end
+            end
+            espConnectionsCandy = {}
+            for candy, hl in pairs(activeHighlightsCandy) do 
+                if hl then hl:Destroy() end 
+            end     
+            activeHighlightsCandy = {}
+        end 
+    end,
+})
 
 local UiSection = Tab4:Section({ Title = "UI Settings", Icon = "monitor" })
 
@@ -335,7 +740,6 @@ UiSection:Button({
     end,
 })
 
-
 local MiscSection = Tab4:Section({ Title = "Misc Settings", Icon = "shield" })
 local AntiAfkEnabled = false
 
@@ -350,7 +754,6 @@ MiscSection:Toggle({
     end,
 })
 
-
 local ok_clone, VirtualUser = pcall(function() return cloneref(game:GetService("VirtualUser")) end)
 if not ok_clone then VirtualUser = game:GetService("VirtualUser") end
 
@@ -363,7 +766,6 @@ Players.LocalPlayer.Idled:Connect(function()
         VirtualUser:ClickButton2(Vector2.new())
     end
 end)
-
 
 local LP = game:GetService("Players").LocalPlayer
 
@@ -408,6 +810,10 @@ task.spawn(function()
         task.wait(0.3)
         styleButton("Copy Discord Invite")
         styleButton("Copy Telegram Link")
+        styleButton("Teleport to Spawn")
+        styleButton("Teleport to Lobby")
+        styleButton("Teleport to Random Player")
+        styleButton("Teleport to Selected Player")
     end
 end)
 
