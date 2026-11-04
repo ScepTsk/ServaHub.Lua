@@ -136,9 +136,6 @@ LinkSection:Button({
     end,
 })
 
--- ==========================================
--- ОБНОВЛЕННЫЙ CHANGELOG
--- ==========================================
 local ChangelogSection = InfoTab:Section({ Title = "Changelog", Icon = "scroll-text" })
 
 ChangelogSection:Paragraph({
@@ -155,7 +152,6 @@ ChangelogSection:Paragraph({
     Image = "rbxassetid://112491954653394",
     ImageSize = 40,
 })
--- ==========================================
 
 local PlayerSection = Tab3:Section({ Title = "Player Settings", Icon = "user" })
 
