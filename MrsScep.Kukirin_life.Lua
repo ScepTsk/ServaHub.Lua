@@ -50,13 +50,21 @@ local function LoadServaHub()
 
         local InputKey = ""
         KeySection:Input({ Title = "Key", Placeholder = "Enter your key here...", Callback = function(text) InputKey = text end })
+        
         KeySection:Button({ Title = "Get Key", Icon = "external-link", Callback = function()
-            if setclipboard then setclipboard("https://t.me/ServaHub") WindUI:Notify({ Title = "Key System", Content = "Ссылка скопирована: https://t.me/ServaHub", Icon = "check", Duration = 3 }) end
+            if setclipboard then 
+                setclipboard("https://t.me/ServaHub") 
+                WindUI:Notify({ Title = "Key System", Content = "Link copied: https://t.me/ServaHub", Icon = "check", Duration = 3 }) 
+            end
         end })
+        
         KeySection:Button({ Title = "Submit Key", Icon = "check", Callback = function()
             if InputKey == CorrectKey then
-                SaveKey() KeyWindow:Destroy() task.wait(0.5)
-                getgenv().ServaHubKeyVerified = true LoadServaHub()
+                SaveKey() 
+                KeyWindow:Destroy() 
+                task.wait(0.5)
+                getgenv().ServaHubKeyVerified = true 
+                LoadServaHub()
             else
                 WindUI:Notify({ Title = "Error", Content = "Invalid Key!", Icon = "x", Duration = 3 })
             end
@@ -70,7 +78,6 @@ local function LoadServaHub()
     local LP = P.LocalPlayer
     local WS = workspace
     local UIS = game:GetService("UserInputService")
-    local HttpService = game:GetService("HttpService")
     local VirtualUser = game:GetService("VirtualUser")
     local Stats = game:GetService("Stats")
     local RS = game:GetService("ReplicatedStorage")
@@ -96,7 +103,7 @@ local function LoadServaHub()
         return result
     end
 
-    local windowTitle = gradient("Serva Hub", Color3.fromRGB(201, 166, 255), Color3.fromRGB(122, 60, 255)) .. ' <font color="rgb(155,92,255)">•</font> <font color="rgb(181,123,255)">v1.9</font>'
+    local windowTitle = gradient("Serva Hub", Color3.fromRGB(201, 166, 255), Color3.fromRGB(122, 60, 255)) .. ' <font color="rgb(155,92,255)">•</font> <font color="rgb(181,123,255)">v1.1</font>'
 
     local Window = WindUI:CreateWindow({
         Title = windowTitle, Icon = "rbxassetid://112491954653394", IconSize = 35,
@@ -113,7 +120,6 @@ local function LoadServaHub()
         })
     end)
 
-    -- ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
     local Hub = { conns = {}, unloaded = false }
     _G.CookiesHubKL = Hub
 
@@ -146,7 +152,6 @@ local function LoadServaHub()
         InfJump = false, Noclip = false, Fly = false, FlySpeed = 60, FOV = Defaults.FOV,
         UITransparency = 0, AntiAFK = true, HidePlayers = false, FPSCap = 60, AntiLag = false,
         QuickInteract = false, ScreenStretch = 0,
-        
         FlipCount = 6
     }
 
@@ -160,7 +165,6 @@ local function LoadServaHub()
         if apply then pcall(apply, value) end
     end
 
-    -- ===== ЛОГИКА KUKIRIN LIFE =====
     local Remotes = RS:FindFirstChild("Remotes")
     local function remote(name)
         if not Remotes then return nil end
@@ -177,6 +181,7 @@ local function LoadServaHub()
     local SpawnRide = Remotes and Remotes.Rides and Remotes.Rides:FindFirstChild("SpawnRide")
     local FoodDelivery = Remotes and Remotes:FindFirstChild("FoodDelivery")
     local RainFolder = Remotes and Remotes:FindFirstChild("MoneyRain")
+    local OpenCase = Remotes and Remotes.Cases and Remotes.Cases:FindFirstChild("OpenCase")
 
     local function data(name)
         if not RS:FindFirstChild("Datas") or not RS.Datas:FindFirstChild(name) then return nil end
@@ -240,9 +245,8 @@ local function LoadServaHub()
         root.AssemblyAngularVelocity = Vector3.zero
     end
 
-    local Session = { startedAt = os.clock(), startCash = tonumber(LP:GetAttribute("Cash")) or 0, quests = 0, achievements = 0, daily = 0, deliveries = 0, deliveryCash = 0, ridesBought = 0, backflips = 0, flipCash = 0 }
+    local Session = { startedAt = os.clock(), startCash = tonumber(LP:GetAttribute("Cash")) or 0, quests = 0, achievements = 0, daily = 0, deliveries = 0, deliveryCash = 0, ridesBought = 0, backflips = 0, flipCash = 0, cratesOpened = 0 }
     
-    -- ===== CHASSIS & VIRTUAL INPUT =====
     local FARM_SPOT = Vector3.new(1100, 56.4, -1500)
     local farmAnchor, farmRadius = FARM_SPOT, 260
 
@@ -283,7 +287,6 @@ local function LoadServaHub()
         pcall(function() if values.Wheelie then values.Wheelie.Value = false end end)
     end
 
-    -- ===== AUTO FLIP LOGIC (V6) =====
     local bfPhase, bfPhaseAt = "idle", 0
     local bfDebug = "Idle"
     local function setBfPhase(p) bfPhase, bfPhaseAt = p, os.clock() end
@@ -415,7 +418,10 @@ local function LoadServaHub()
     end
 
     appliers.FlipCount = function()
-        if bfPhase ~= "idle" then fly = nil setBfPhase("recover") end
+        if bfPhase ~= "idle" then 
+            fly = nil 
+            setBfPhase("recover") 
+        end
     end
 
     bind(RunService.Heartbeat:Connect(function()
@@ -605,24 +611,8 @@ local function LoadServaHub()
         end
     end)
 
-    -- ===== AUTO WHEELIE =====
-    local phase, phaseAt = "idle", 0
-    local function setPhase(p) phase, phaseAt = p, os.clock() end
-
-    local function clearRadius(ground)
-        groundBelow(ground)
-        local nearest = 400
-        for a = 0, 71 do
-            local ang = a / 72 * math.pi * 2
-            local dir = Vector3.new(math.cos(ang), 0, math.sin(ang)) * 400
-            for _, h in ipairs({ 1.2, 3, 6 }) do
-                local from = ground + Vector3.new(0, h, 0)
-                local hit = WS:Raycast(from, dir, groundParams)
-                if hit then nearest = math.min(nearest, (hit.Position - from).Magnitude) end
-            end
-        end
-        return nearest
-    end
+    local wPhase, wPhaseAt = "idle", 0
+    local function setWPhase(p) wPhase, wPhaseAt = p, os.clock() end
 
     local oneHandByHelper, policeBefore, armToggledAt = false, nil, 0
 
@@ -635,16 +625,16 @@ local function LoadServaHub()
         end
     end
 
-    local quests = {}
+    local questsData = {}
     local function questNeeds(id)
-        for _, q in ipairs(quests) do
+        for _, q in ipairs(questsData) do
             if q.Id == id and (q.NextAt or 0) <= os.time() and (q.Progress or 0) < (q.Target or 0) then return true end
         end
         return false
     end
 
     local function questHelpers()
-        local wheelieing = Settings.AutoWheelie and phase == "wheelie"
+        local wheelieing = Settings.AutoWheelie and wPhase == "wheelie"
         if Settings.QuestHelpers and wheelieing and questNeeds("OneHandWheelie") then
             oneHandByHelper = true
             setOneHand(true)
@@ -665,7 +655,7 @@ local function LoadServaHub()
     end
 
     local stuckSince, lastCheckPos, lastWheelieTime
-    local function stuck(seat)
+    local function isStuck(seat)
         local wt = tonumber(LP:GetAttribute("WheelieTime")) or 0
         local still = lastCheckPos and (seat.Position - lastCheckPos).Magnitude < 0.5
         local earning = lastWheelieTime and wt > lastWheelieTime
@@ -681,26 +671,31 @@ local function LoadServaHub()
     task.spawn(function()
         while not Hub.unloaded do
             local seat, hum = myDriveSeat(), getHum()
-            local farming = Settings.AutoWheelie and not Settings.AutoDelivery
-            if farming and hum and not seat then
-                setPhase("idle")
-            elseif farming and seat and hum then
-                if hum.SeatPart ~= seat then
-                    setPhase("idle")
+            local farming = Settings.AutoWheelie and not Settings.AutoDelivery and not Settings.AutoBackflip
+            
+            if farming and hum then
+                if not seat then
+                    if wPhase ~= "spawning" then
+                        setWPhase("spawning")
+                        respawnRide()
+                        task.wait(1)
+                    end
+                elseif hum.SeatPart ~= seat then
+                    setWPhase("idle")
                     local root = getRoot()
                     if root then root.CFrame = seat.CFrame + Vector3.new(0, 1.5, 0) end
                     task.wait(0.4)
                     pcall(function() seat:Sit(hum) end)
-                elseif phase == "idle" then
+                elseif wPhase == "idle" or wPhase == "spawning" then
                     streamAround(farmAnchor)
                     placeRide(farmAnchor + Vector3.new(0, seatHeight(seat), 0))
-                    setPhase("place")
-                elseif phase ~= "place" and stuck(seat) then
+                    setWPhase("place")
+                elseif wPhase ~= "place" and isStuck(seat) then
                     stuckSince = nil
-                    setPhase("idle")
+                    setWPhase("idle")
                 end
-            elseif phase ~= "idle" then
-                setPhase("idle")
+            elseif wPhase ~= "idle" then
+                setWPhase("idle")
                 releaseRide()
             end
             questHelpers()
@@ -710,22 +705,25 @@ local function LoadServaHub()
 
     local lastPitch, pitchRate = 0, 0
     bind(RunService.Heartbeat:Connect(function(dt)
-        if phase == "idle" then return end
+        if wPhase == "idle" or wPhase == "spawning" then return end
         local seat = myDriveSeat()
         local values, input = chassis()
         if not (seat and seated(seat) and values) then return end
-        local t = os.clock() - phaseAt
-        if phase == "place" then
+        local t = os.clock() - wPhaseAt
+        if wPhase == "place" then
             pad(input, Enum.KeyCode.ButtonR2, 0)
-            if t > 1 then setPhase("launch") end
+            if t > 1 then setWPhase("launch") end
             return
         end
         pad(input, Enum.KeyCode.Thumbstick1, 0.25)
-        if phase == "launch" then
+        if wPhase == "launch" then
             pcall(function() values.Wheelie.Value = false end)
             pad(input, Enum.KeyCode.ButtonR2, 0.7)
             pad(input, Enum.KeyCode.ButtonL2, 0)
-            if t > 1.5 then lastPitch, pitchRate = 0, 0 setPhase("wheelie") end
+            if t > 1.5 then 
+                lastPitch, pitchRate = 0, 0 
+                setWPhase("wheelie") 
+            end
             return
         end
         pcall(function() if not values.Wheelie.Value then values.Wheelie.Value = true end end)
@@ -746,45 +744,58 @@ local function LoadServaHub()
         end
     end))
 
-    -- ===== MULTIPLIERS LOGIC =====
     bind(RunService.Heartbeat:Connect(function(dt)
         local seat = myDriveSeat()
         if not (seat and seated(seat)) then return end
         
-        local isAccelerating = UIS:IsKeyDown(Enum.KeyCode.W) or UIS:IsKeyDown(Enum.KeyCode.Up)
+        local values, input = chassis()
+        if not (values and input) then return end
         
-        if isAccelerating then
+        local isAcceleratingKeyboard = UIS:IsKeyDown(Enum.KeyCode.W) or UIS:IsKeyDown(Enum.KeyCode.Up)
+        
+        local isAcceleratingMobile = false
+        pcall(function()
+            if values:FindFirstChild("Throttle") and values.Throttle.Value > 0.1 then
+                isAcceleratingMobile = true
+            end
+            if input:GetAttribute("ButtonR2") == true then
+                isAcceleratingMobile = true
+            end
+            if Settings.AutoWheelie or Settings.AutoBackflip then
+                isAcceleratingMobile = true
+            end
+        end)
+        
+        local isAccelerating = isAcceleratingKeyboard or isAcceleratingMobile
+        local isBraking = UIS:IsKeyDown(Enum.KeyCode.S) or UIS:IsKeyDown(Enum.KeyCode.Down)
+        
+        if isAccelerating and not isBraking then
             local root = seat.AssemblyRootPart or seat
             local currentVel = root.AssemblyLinearVelocity
             local flatVel = Vector3.new(currentVel.X, 0, currentVel.Z)
             local currentSpeed = flatVel.Magnitude
             
-            local baseMaxSpeed = 16.6 
-            local targetMaxSpeed = baseMaxSpeed * Settings.SpeedMultiplier
-            
-            if currentSpeed < targetMaxSpeed then
-                local accelForce = (Settings.AccelMultiplier * 5) * dt
+            if Settings.SpeedMultiplier > 1 then
+                local accelForce = (Settings.AccelMultiplier * 15) * dt
                 if currentSpeed > 0.5 then
                     root.AssemblyLinearVelocity += flatVel.Unit * accelForce
                 end
             end
         end
-    end))
-
-    bind(RunService.Heartbeat:Connect(function(dt)
-        if Settings.RideSpeedBoost <= 0 or Settings.AutoWheelie then return end
-        local seat = myDriveSeat()
-        if seat and seated(seat) and (UIS:IsKeyDown(Enum.KeyCode.W) or UIS:IsKeyDown(Enum.KeyCode.Up)) then
-            local look = seat.CFrame.LookVector
-            local flat = Vector3.new(look.X, 0, look.Z)
-            if flat.Magnitude > 0.1 then
-                local root = seat.AssemblyRootPart or seat
-                root.AssemblyLinearVelocity += flat.Unit * Settings.RideSpeedBoost * dt
+        
+        if Settings.RideSpeedBoost > 0 and isAccelerating and not isBraking then
+            local seat2 = myDriveSeat()
+            if seat2 and seated(seat2) then
+                local look = seat2.CFrame.LookVector
+                local flat = Vector3.new(look.X, 0, look.Z)
+                if flat.Magnitude > 0.1 then
+                    local root2 = seat2.AssemblyRootPart or seat2
+                    root2.AssemblyLinearVelocity += flat.Unit * Settings.RideSpeedBoost * dt
+                end
             end
         end
     end))
 
-    -- ===== ANTI POLICE & ANTI CRASH LOGIC =====
     task.spawn(function()
         while not Hub.unloaded do
             if Settings.AntiPolice and PoliceMode then
@@ -814,7 +825,6 @@ local function LoadServaHub()
         end
     end))
 
-    -- ===== AUTO DELIVERY (V1.9 FIXED & STABLE) =====
     local deliveryState = "idle"
     local deliveryStateAt = 0
     local deliveryStats = { done = 0, cash = 0, startedAt = os.clock() }
@@ -847,7 +857,6 @@ local function LoadServaHub()
             if hrp then return hrp, customer, prompt end
         end
         
-        -- Безопасный поиск двери, если клиента нет
         local ok, doorPart = pcall(function()
             local buildings = WS:FindFirstChild("Buildings")
             if buildings then
@@ -1036,7 +1045,6 @@ local function LoadServaHub()
         end
     end)
 
-    -- ===== ESP PLAYERS =====
     local ESP_Highlights = {}
     local ESP_Enabled = false
 
@@ -1113,9 +1121,11 @@ local function LoadServaHub()
         end
     end)
 
-    -- ===== ESP (ОБЪЕКТЫ) =====
     local guiParent = game:GetService("CoreGui")
-    if gethui then local ok, hui = pcall(gethui) if ok and typeof(hui) == "Instance" then guiParent = hui end end
+    if gethui then 
+        local ok, hui = pcall(gethui) 
+        if ok and typeof(hui) == "Instance" then guiParent = hui end 
+    end
 
     local espFolder = Instance.new("Folder")
     espFolder.Name = "ServaHubESP"
@@ -1153,7 +1163,9 @@ local function LoadServaHub()
     local function clearEsp(keep)
         for target, tag in pairs(espTags) do
             if not (keep and tag.seen and target.Parent) then
-                tag.gui:Destroy() tag.highlight:Destroy() espTags[target] = nil
+                tag.gui:Destroy() 
+                tag.highlight:Destroy() 
+                espTags[target] = nil
             end
             tag.seen = false
         end
@@ -1224,22 +1236,35 @@ local function LoadServaHub()
         end
     end)
 
-    -- ===== ДВИЖЕНИЕ =====
     local noclipSaved = {}
     appliers.Noclip = function(on)
         if on then return end
-        for part in pairs(noclipSaved) do if part.Parent then part.CanCollide = true end end
+        for part in pairs(noclipSaved) do 
+            if part.Parent then part.CanCollide = true end 
+        end
         noclipSaved = {}
     end
-    appliers.Fly = function(on) if not on then local h = getHum() if h then h.PlatformStand = false end end end
-    appliers.FOV = function(v) if WS.CurrentCamera then WS.CurrentCamera.FieldOfView = v end end
+    
+    appliers.Fly = function(on) 
+        if not on then 
+            local h = getHum() 
+            if h then h.PlatformStand = false end 
+        end 
+    end
+    
+    appliers.FOV = function(v) 
+        if WS.CurrentCamera then WS.CurrentCamera.FieldOfView = v end 
+    end
 
     bind(RunService.Stepped:Connect(function()
         if not Settings.Noclip then return end
         local c = LP.Character
         if not c then return end
         for _, p in ipairs(c:GetDescendants()) do
-            if p:IsA("BasePart") and p.CanCollide then noclipSaved[p] = true p.CanCollide = false end
+            if p:IsA("BasePart") and p.CanCollide then 
+                noclipSaved[p] = true 
+                p.CanCollide = false 
+            end
         end
     end))
 
@@ -1286,7 +1311,9 @@ local function LoadServaHub()
     local function giveTeleportTool()
         if tpTool and tpTool.Parent then return end
         tpTool = Instance.new("Tool")
-        tpTool.Name = "Click Teleport" tpTool.RequiresHandle = false tpTool.CanBeDropped = false
+        tpTool.Name = "Click Teleport" 
+        tpTool.RequiresHandle = false 
+        tpTool.CanBeDropped = false
         tpTool.Parent = LP:WaitForChild("Backpack")
         tpTool.Activated:Connect(function()
             local root = getRoot()
@@ -1298,22 +1325,31 @@ local function LoadServaHub()
 
     bind(LP.Idled:Connect(function()
         if not Settings.AntiAFK then return end
-        pcall(function() VirtualUser:CaptureController() VirtualUser:ClickButton2(Vector2.new()) end)
+        pcall(function() 
+            VirtualUser:CaptureController() 
+            VirtualUser:ClickButton2(Vector2.new()) 
+        end)
     end))
 
     local hiddenParts = {}
     appliers.HidePlayers = function(on)
         if on then return end
-        for part in pairs(hiddenParts) do if part.Parent then part.LocalTransparencyModifier = 0 end end
+        for part in pairs(hiddenParts) do 
+            if part.Parent then part.LocalTransparencyModifier = 0 end 
+        end
         hiddenParts = {}
     end
+    
     task.spawn(function()
         while not Hub.unloaded do
             if Settings.HidePlayers then
                 for _, p in ipairs(P:GetPlayers()) do
                     if p ~= LP and p.Character then
                         for _, d in ipairs(p.Character:GetDescendants()) do
-                            if d:IsA("BasePart") or d:IsA("Decal") then hiddenParts[d] = true d.LocalTransparencyModifier = 1 end
+                            if d:IsA("BasePart") or d:IsA("Decal") then 
+                                hiddenParts[d] = true 
+                                d.LocalTransparencyModifier = 1 
+                            end
                         end
                     end
                 end
@@ -1324,43 +1360,215 @@ local function LoadServaHub()
         end
     end)
 
-    appliers.FPSCap = function(v) if setfpscap then pcall(setfpscap, v) end end
+    appliers.FPSCap = function(v) 
+        if setfpscap then pcall(setfpscap, v) end 
+    end
 
     local LAG_FX = { ParticleEmitter = true, Trail = true, Smoke = true, Fire = true, Sparkles = true, Beam = true }
     local lagFx, lagShadows = {}, nil
     local function killFx(d)
-        if LAG_FX[d.ClassName] and d.Enabled then lagFx[d] = true d.Enabled = false end
+        if LAG_FX[d.ClassName] and d.Enabled then 
+            lagFx[d] = true 
+            d.Enabled = false 
+        end
     end
+    
     appliers.AntiLag = function(on)
         if on then
             if lagShadows == nil then lagShadows = Lighting.GlobalShadows end
             Lighting.GlobalShadows = false
             for _, d in ipairs(WS:GetDescendants()) do killFx(d) end
         else
-            if lagShadows ~= nil then Lighting.GlobalShadows = lagShadows lagShadows = nil end
-            for d in pairs(lagFx) do if d.Parent then d.Enabled = true end end
+            if lagShadows ~= nil then 
+                Lighting.GlobalShadows = lagShadows 
+                lagShadows = nil 
+            end
+            for d in pairs(lagFx) do 
+                if d.Parent then d.Enabled = true end 
+            end
             lagFx = {}
         end
     end
-    bind(WS.DescendantAdded:Connect(function(d) if Settings.AntiLag then killFx(d) end end))
+    
+    bind(WS.DescendantAdded:Connect(function(d) 
+        if Settings.AntiLag then killFx(d) end 
+    end))
 
     local fbSaved
     appliers.Fullbright = function(on)
         if on then
             fbSaved = fbSaved or { Brightness = Lighting.Brightness, ClockTime = Lighting.ClockTime, FogEnd = Lighting.FogEnd, GlobalShadows = Lighting.GlobalShadows, Ambient = Lighting.Ambient, OutdoorAmbient = Lighting.OutdoorAmbient }
         elseif fbSaved then
-            Lighting.Brightness, Lighting.ClockTime, Lighting.FogEnd = fbSaved.Brightness, fbSaved.ClockTime, fbSaved.FogEnd
-            Lighting.GlobalShadows, Lighting.Ambient, Lighting.OutdoorAmbient = fbSaved.GlobalShadows, fbSaved.Ambient, fbSaved.OutdoorAmbient
+            Lighting.Brightness = fbSaved.Brightness
+            Lighting.ClockTime = fbSaved.ClockTime
+            Lighting.FogEnd = fbSaved.FogEnd
+            Lighting.GlobalShadows = fbSaved.GlobalShadows
+            Lighting.Ambient = fbSaved.Ambient
+            Lighting.OutdoorAmbient = fbSaved.OutdoorAmbient
             fbSaved = nil
         end
     end
+    
     bind(RunService.Heartbeat:Connect(function()
         if not Settings.Fullbright then return end
-        Lighting.Brightness = 2 Lighting.ClockTime = 14 Lighting.FogEnd = 1e9 Lighting.GlobalShadows = false
-        Lighting.Ambient = Color3.new(1, 1, 1) Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+        Lighting.Brightness = 2 
+        Lighting.ClockTime = 14 
+        Lighting.FogEnd = 1e9 
+        Lighting.GlobalShadows = false
+        Lighting.Ambient = Color3.new(1, 1, 1) 
+        Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
     end))
 
-    -- ===== UI =====
+    local function topSpeed(name) 
+        local s = RideSpecs and RideSpecs[name] 
+        return s and s.TopSpeed or 0 
+    end
+    
+    task.spawn(function()
+        while not Hub.unloaded do
+            if Settings.AutoBuyRide and GetRides and BuyRide then
+                local ok, rides = pcall(function() return GetRides:InvokeServer() end)
+                if ok and type(rides) == "table" then
+                    local best, cash, pick = 0, tonumber(LP:GetAttribute("Cash")) or 0, nil
+                    for _, r in ipairs(rides) do 
+                        if r.Owned then 
+                            best = math.max(best, topSpeed(r.Name)) 
+                        end 
+                    end
+                    for _, r in ipairs(rides) do
+                        local price = tonumber(r.Price) or 0
+                        if not r.Owned and not r.RobuxOnly and not r.Event and price > 0 and price <= cash then
+                            local speed = topSpeed(r.Name)
+                            if speed > best then
+                                best = speed
+                                pick = r
+                            end
+                        end
+                    end
+                    if pick then
+                        local okb, bought = pcall(function() return BuyRide:InvokeServer(pick.Name) end)
+                        if okb and bought then 
+                            Session.ridesBought += 1 
+                            WindUI:Notify({ Title = "Auto Buy", Content = "Bought " .. pick.Name, Icon = "check", Duration = 3 })
+                        end
+                    end
+                end
+            end
+            task.wait(20)
+        end
+    end)
+
+    task.spawn(function()
+        while not Hub.unloaded do
+            if Settings.AutoBuyBasic and OpenCase then
+                local cash = tonumber(LP:GetAttribute("Cash")) or 0
+                local cratePrice = 100 
+                
+                if cash >= cratePrice then
+                    local ok, result = pcall(function()
+                        return OpenCase:InvokeServer("Street", 1)
+                    end)
+                    if ok and result then
+                        Session.cratesOpened += 1
+                    end
+                end
+            end
+            task.wait(1) 
+        end
+    end)
+
+    local function disableCrateAnimation()
+        local function killAnim(parent)
+            if not parent then return end
+            for _, gui in ipairs(parent:GetDescendants()) do
+                if gui:IsA("Frame") or gui:IsA("ImageLabel") or gui:IsA("TextLabel") then
+                    local name = gui.Name:lower()
+                    if name:find("crate") or name:find("case") or name:find("open") or name:find("animation") then
+                        gui.Visible = false
+                    end
+                end
+                if gui:IsA("Animation") then
+                    gui:Destroy()
+                end
+            end
+        end
+        
+        killAnim(LP:FindFirstChild("PlayerGui"))
+        local coreGui = game:GetService("CoreGui")
+        killAnim(coreGui)
+        
+        LP.PlayerGui.DescendantAdded:Connect(function(d)
+            if Settings.AutoBuyBasic then
+                task.wait(0.1)
+                if d:IsA("Frame") or d:IsA("ImageLabel") or d:IsA("TextLabel") then
+                    local name = d.Name:lower()
+                    if name:find("crate") or name:find("case") or name:find("open") or name:find("animation") then
+                        d.Visible = false
+                    end
+                end
+                if d:IsA("Animation") then d:Destroy() end
+            end
+        end)
+    end
+    
+    disableCrateAnimation()
+
+    task.spawn(function()
+        while not Hub.unloaded do
+            if GetQuests and (Settings.AutoQuests or (Settings.AutoWheelie and Settings.QuestHelpers)) then
+                local ok, list = pcall(function() return GetQuests:InvokeServer() end)
+                if ok and type(list) == "table" then
+                    questsData = list
+                    for i, q in ipairs(Settings.AutoQuests and ClaimQuest and list or {}) do
+                        local ready = (q.NextAt or 0) <= os.time() and (q.Progress or 0) >= (q.Target or math.huge)
+                        if ready then
+                            local okc, claimed = pcall(function() return ClaimQuest:InvokeServer(i) end)
+                            if okc and claimed then 
+                                Session.quests += 1 
+                                task.wait(0.4) 
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(5)
+        end
+    end)
+
+    local function claimAll(claim)
+        for _ = 1, 20 do
+            local ok, claimed = pcall(claim)
+            if not (ok and claimed) then return end
+            Session.achievements += 1
+            task.wait(0.3)
+        end
+    end
+
+    task.spawn(function()
+        while not Hub.unloaded do
+            if Settings.AutoAchievements and ClaimAchievement and AchievementConfig then
+                for _, a in ipairs(AchievementConfig.Achievements or {}) do
+                    claimAll(function() return ClaimAchievement:InvokeServer(a.Id) end)
+                end
+                if ClaimAchievementReward then claimAll(function() return ClaimAchievementReward:InvokeServer() end) end
+            end
+            task.wait(30)
+        end
+    end)
+
+    task.spawn(function()
+        while not Hub.unloaded do
+            if Settings.AutoDaily and GetDailyRewards and ClaimDailyReward then
+                local ok, d = pcall(function() return GetDailyRewards:InvokeServer() end)
+                if ok and type(d) == "table" and (d.NextAt or 0) <= os.time() then
+                    local okc, claimed = pcall(function() return ClaimDailyReward:InvokeServer() end)
+                    if okc and claimed then Session.daily += 1 end
+                end
+            end
+            task.wait(60)
+        end
+    end)
+
     local InfoTab = Window:Tab({ Title = "Information", Icon = "info" })
     Window:Divider()
     local MainTab = Window:Tab({ Title = "Main", Icon = "activity" })
@@ -1381,15 +1589,61 @@ local function LoadServaHub()
             Image = "rbxthumb://type=AvatarHeadShot&id=" .. Player.UserId .. "&w=420&h=420", ImageSize = 80
         })
     end)
-    InfoTab:Section({ Title = "Links", Icon = "link" }):Button({ Title = "Copy Telegram Link", Icon = "copy", Callback = function() if setclipboard then setclipboard("https://t.me/ServaHub") end end })
+    
+    local tgSection = InfoTab:Section({ Title = "Telegram Channel", Icon = "link" })
 
+    tgSection:Paragraph({
+        Title = "Telegram Channel",
+        Desc = "Official Channel\nSubscribers: 43",
+        Image = "rbxassetid://112491954653394",
+        ImageSize = 50
+    })
+
+    tgSection:Button({ 
+        Title = "Copy Telegram Link", 
+        Icon = "copy", 
+        Callback = function() 
+            if setclipboard then 
+                setclipboard("https://t.me/ServaHub") 
+                WindUI:Notify({ Title = "Telegram", Content = "Link copied!", Icon = "check", Duration = 3 })
+            end 
+        end 
+    })
+    
+    local changelogSection = InfoTab:Section({ Title = "Changelog", Icon = "history" })
+    
+    changelogSection:Paragraph({
+        Title = "Release Version 1.1 — November 7, 2026",
+        Desc = "• Added Auto Wheelie Farm with Balance Angle slider.\n• Added Auto Flip Farm with Flip Count slider (1–6 flips).\n• Added Auto Delivery system with status tracking.\n• Added Auto Buy Best Scooter, Sticker Pack, Charms Crate, and Basic Crate (Street).\n• Added crate opening animation disabler.\n• Added Auto Claim Achievements, Quests, and Daily Rewards.\n• Added ESP for Players, Rides, Police, and Delivery Customers.\n• Added ESP names and distance display.\n• Added Movement: WalkSpeed, JumpPower, Float Height, Infinite Jump, Noclip, Fly, FOV.\n• Added Teleport Tool.\n• Added Speed and Acceleration Multipliers.\n• Added Anti Police and Anti Crash protection.\n• Added Fullbright and Anti Lag.\n• Added Performance: Hide Players, FPS Cap, Anti Lag.\n• Added Misc: Anti AFK, Quick Interact.\n• Added UI Settings: Transparency, Toggle UI.\n• Added FPS and Ping tags to the top bar.\n• Added Key System with saved key.\n• Added full Changelog to Information tab."
+    })
+    
     local wheelieSection = MainTab:Section({ Title = "Wheelie", Icon = "bike" })
-    wheelieSection:Toggle({ Title = "Auto Wheelie Farm", Value = Settings.AutoWheelie, Callback = function(v) setSetting("AutoWheelie", v) end })
-    wheelieSection:Slider({ Title = "Balance Angle", Value = { Min = 0, Max = 90, Default = 60 }, Callback = function(v) setSetting("BalanceAngle", v) end })
+    wheelieSection:Toggle({ 
+        Title = "Auto Wheelie Farm",         
+        Value = Settings.AutoWheelie, 
+        Callback = function(v) setSetting("AutoWheelie", v) end 
+    })
+    wheelieSection:Slider({ 
+        Title = "Balance Angle", 
+        Value = { Min = 0, Max = 90, Default = 60 }, 
+        Callback = function(v) setSetting("BalanceAngle", v) end 
+    })
 
     local multSection = MainTab:Section({ Title = "Multipliers", Icon = "zap" })
-    multSection:Slider({ Title = "Speed Multiplier", Value = { Min = 1, Max = 5, Default = 1 }, Callback = function(v) setSetting("SpeedMultiplier", v) end })
-    multSection:Slider({ Title = "Acceleration Multiplier", Value = { Min = 1, Max = 5, Default = 1 }, Callback = function(v) setSetting("AccelMultiplier", v) end })
+    
+    multSection:Slider({ 
+        Title = "Speed Multiplier", 
+        Desc = "Hold W to boost speed",
+        Value = { Min = 1, Max = 5, Default = 1 }, 
+        Callback = function(v) setSetting("SpeedMultiplier", v) end 
+    })
+    
+    multSection:Slider({ 
+        Title = "Acceleration Multiplier", 
+        Desc = "Hold W for faster acceleration",
+        Value = { Min = 1, Max = 5, Default = 1 }, 
+        Callback = function(v) setSetting("AccelMultiplier", v) end 
+    })
 
     local protectionSection = MainTab:Section({ Title = "Protection", Icon = "shield" })
     protectionSection:Toggle({ Title = "Anti Police", Value = Settings.AntiPolice, Callback = function(v) setSetting("AntiPolice", v) end })
@@ -1402,47 +1656,33 @@ local function LoadServaHub()
     local bfStatsLabel = farmAutoSection:Paragraph({ Title = "Flip Stats", Desc = "Flips: 0 | Money: $0" })
     
     farmAutoSection:Slider({
-        Title = "Flips per jump", Value = { Min = 1, Max = 6, Default = 6 },
+        Title = "Flips per Jump", 
+        Desc = "Number of backflip rotations in one jump (1 — 6)",
+        Value = { Min = 1, Max = 6, Default = 6 },
         Callback = function(v) setSetting("FlipCount", v) end
     })
     farmAutoSection:Toggle({
-        Title = "Auto Flip Farm", Value = Settings.AutoBackflip,
+        Title = "Auto Flip Farm", 
+        Desc = "Automatically performs backflips to earn money",
+        Value = Settings.AutoBackflip,
         Callback = function(v) setSetting("AutoBackflip", v) end
     })
     
     farmAutoSection:Divider({ Title = "Delivery" })
     local delStatusLabel = farmAutoSection:Paragraph({ Title = "Delivery Status", Desc = "Idle" })
     local delStatsLabel = farmAutoSection:Paragraph({ Title = "Delivery Stats", Desc = "Deliveries: 0 | Cash: $0" })
-    farmAutoSection:Toggle({ Title = "Auto Delivery", Value = Settings.AutoDelivery, Callback = function(v) setSetting("AutoDelivery", v) end })
-
-    task.spawn(function()
-        while not Hub.unloaded do
-            task.wait(1)
-            pcall(function()
-                if Settings.AutoBackflip then
-                    bfStatusLabel:SetDesc(bfDebug or "Idle")
-                    bfStatsLabel:SetDesc(string.format("Flips: %d | Money: $%d", Session.backflips, Session.flipCash))
-                else
-                    bfStatusLabel:SetDesc("Idle")
-                end
-                if Settings.AutoDelivery then
-                    local labels = { idle = "Idle", toNPC = "→ NPC", takeOrder = "Беру заказ...",
-                        toCustomer = "→ Клиент", giveOrder = "Сдаю заказ...", wait = "Пауза" }
-                    delStatusLabel:SetDesc(labels[deliveryState] or deliveryState)
-                    local rate = deliveryStats.done > 0
-                        and math.floor(deliveryStats.cash / math.max((os.clock() - deliveryStats.startedAt) / 3600, 0.001))
-                        or 0
-                    delStatsLabel:SetDesc(string.format("Deliveries: %d | Cash: $%d | Rate: $%d/h",
-                        deliveryStats.done, deliveryStats.cash, rate))
-                else
-                    delStatusLabel:SetDesc("Idle")
-                end
-            end)
-        end
-    end)
+    farmAutoSection:Toggle({ 
+        Title = "Auto Delivery", 
+        Desc = "Automatically takes and delivers food orders",
+        Value = Settings.AutoDelivery, 
+        Callback = function(v) setSetting("AutoDelivery", v) end 
+    })
 
     local shopSection = ShopTab:Section({ Title = "Auto Buy", Icon = "shopping-bag" })
     shopSection:Toggle({ Title = "Auto Buy Best Scooter", Value = Settings.AutoBuyRide, Callback = function(v) setSetting("AutoBuyRide", v) end })
+    shopSection:Toggle({ Title = "Auto Buy Sticker pack", Value = Settings.AutoBuySticker, Callback = function(v) setSetting("AutoBuySticker", v) end })
+    shopSection:Toggle({ Title = "Auto Buy Charms crate", Value = Settings.AutoBuyCharm, Callback = function(v) setSetting("AutoBuyCharm", v) end })
+    shopSection:Toggle({ Title = "Auto Buy Basic Crate", Value = Settings.AutoBuyBasic, Callback = function(v) setSetting("AutoBuyBasic", v) end })
     
     local claimSection = RewardsTab:Section({ Title = "Auto Collect Rewards", Icon = "award" })
     claimSection:Toggle({ Title = "Auto Claim Achievements", Value = Settings.AutoAchievements, Callback = function(v) setSetting("AutoAchievements", v) end })
@@ -1461,10 +1701,84 @@ local function LoadServaHub()
 
     local miscSection = SettingsTab:Section({ Title = "Misc", Icon = "shield" })
     miscSection:Toggle({ Title = "Anti AFK", Value = Settings.AntiAFK, Callback = function(v) setSetting("AntiAFK", v) end })
+    miscSection:Toggle({ Title = "Quick Interact", Value = Settings.QuickInteract, Callback = function(v) setSetting("QuickInteract", v) end })
 
     local perfSection = SettingsTab:Section({ Title = "Performance", Icon = "activity" })
     perfSection:Toggle({ Title = "Hide Players", Value = Settings.HidePlayers, Callback = function(v) setSetting("HidePlayers", v) end })
     perfSection:Slider({ Title = "FPS Cap", Value = { Min = 15, Max = 240, Default = 60, Rounding = 5 }, Callback = function(v) setSetting("FPSCap", v) end })
+    perfSection:Toggle({ Title = "Anti Lag", Value = Settings.AntiLag, Callback = function(v) setSetting("AntiLag", v) end })
+
+    local uiSection = SettingsTab:Section({ Title = "UI Settings", Icon = "monitor" })
+    uiSection:Slider({ Title = "Transparency", Value = { Min = 0, Max = 0.6, Default = 0, Rounding = 0.05 }, Callback = function(v) pcall(function() Window:SetBackgroundImageTransparency(v) end) end })
+    uiSection:Button({ Title = "Toggle UI (Hide/Show)", Icon = "eye-off", Callback = function() pcall(function() Window:Close() end) end })
+
+    task.spawn(function()
+        while not Hub.unloaded do
+            task.wait(1)
+            pcall(function()
+                if Settings.AutoBackflip then
+                    bfStatusLabel:SetDesc(bfDebug or "Idle")
+                    bfStatsLabel:SetDesc(string.format("Flips: %d | Money: $%d", Session.backflips, Session.flipCash))
+                else
+                    bfStatusLabel:SetDesc("Idle")
+                end
+                if Settings.AutoDelivery then
+                    local labels = { idle = "Idle", toNPC = "-> NPC", takeOrder = "Taking order...",
+                        toCustomer = "-> Customer", giveOrder = "Delivering...", wait = "Waiting..." }
+                    delStatusLabel:SetDesc(labels[deliveryState] or deliveryState)
+                    local rate = deliveryStats.done > 0
+                        and math.floor(deliveryStats.cash / math.max((os.clock() - deliveryStats.startedAt) / 3600, 0.001))
+                        or 0
+                    delStatsLabel:SetDesc(string.format("Deliveries: %d | Cash: $%d | Rate: $%d/h",
+                        deliveryStats.done, deliveryStats.cash, rate))
+                else
+                    delStatusLabel:SetDesc("Idle")
+                end
+            end)
+        end
+    end)
+
+    local FpsTag, PingTag
+    pcall(function()
+        FpsTag = Window:Tag({ Title = "FPS: --", Icon = "gauge", Color = Color3.fromHex("#9B6BFF"), Radius = 8, TextSize = 12 })
+        PingTag = Window:Tag({ Title = "Ping: --", Icon = "wifi", Color = Color3.fromHex("#9B6BFF"), Radius = 8, TextSize = 12 })
+    end)
+
+    local frames, lastTick = 0, os.clock()
+    local fallbackFps = 0
+    bind(RunService.RenderStepped:Connect(function()
+        frames += 1
+        local now = os.clock()
+        if now - lastTick >= 1 then 
+            fallbackFps = frames 
+            frames = 0 
+            lastTick = now 
+        end
+    end))
+
+    task.spawn(function()
+        while not Hub.unloaded do
+            task.wait(0.5)
+            if FpsTag then
+                local fps = fallbackFps
+                local manager = Stats:FindFirstChild("FrameRateManager")
+                local RenderAverage = manager and manager:FindFirstChild("RenderAverage")
+                if RenderAverage then
+                    local ok, ms = pcall(function() return RenderAverage:GetValue() end)
+                    if ok and type(ms) == "number" and ms > 0 then fps = math.floor(1000 / ms) end
+                end
+                pcall(function()
+                    FpsTag:SetTitle("FPS: " .. fps)
+                end)
+            end
+            if PingTag then
+                local ping = LP:GetNetworkPing() * 1000
+                pcall(function()
+                    PingTag:SetTitle("Ping: " .. math.floor(ping + 0.5))
+                end)
+            end
+        end
+    end)
 end
 
 local ok, err = pcall(LoadServaHub)
