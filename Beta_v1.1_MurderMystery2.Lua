@@ -1,11 +1,14 @@
-- - Serva Hub - Murder Mystery 2 (Remake Edition) 
-( By: @ScepTsk / Serva Hub ) 
- 
-The original functions and code were taken from:
-— Foxname Hub
-— Pulse Hub
- 
-- - This is a remake of the script with fixed bugs, improved functionality, and a redesigned interface. We do not claim authorship of the original code; we are merely developing it
+--[[
+    Serva Hub - Murder Mystery 2 (Remake Edition)
+    ( By: @ScepTsk / Serva Hub )
+    
+    The original functions and code were taken from:
+    — Foxname Hub
+    — Pulse Hub
+    
+    This is a remake of the script with fixed bugs, improved functionality, and a redesigned interface. 
+    We do not claim authorship of the original code; we are merely developing it.
+--]]
 
 local function LoadServaHub()
     local RunService = game:GetService("RunService")
